@@ -1,48 +1,35 @@
-
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { Task } from './task.entity';
-import { v4 as uuidv4 } from 'uuid';
 import { CreateTaskDto } from './dto/create-task.dto';
 
 @Injectable()
 export class TasksService {
-  private tasks: Task[] = [];
+  constructor(
+    @InjectRepository(Task)
+    private tasksRepository: Repository<Task>,
+  ) {}
 
-  getAllTasks(): Task[] {
-    return this.tasks;
+  async getAllTasks(): Promise<Task[]> {
+    return await this.tasksRepository.find();
   }
 
-  getTaskById(id: string): Task {
-    return this.tasks.find(task => task.id === id);
+  async getTaskById(id: number): Promise<Task> {
+    return await this.tasksRepository.findOneBy(id);
   }
 
-  createTask(createTaskDto: CreateTaskDto): Task {
-    const { title, description } = createTaskDto;
-    const task: Task = {
-      id: uuidv4(),
-      title,
-      description,
-      isDone: false,
-    };
-    this.tasks.push(task);
-    return task;
+  async createTask(createTaskDto: CreateTaskDto): Promise<Task> {
+    const task = this.tasksRepository.create(createTaskDto);
+    return await this.tasksRepository.save(task);
   }
 
-  updateTask(id: string, updateTaskDto: Partial<Task>): Task {
-    const task = this.getTaskById(id);
-    if (updateTaskDto.title) {
-      task.title = updateTaskDto.title;
-    }
-    if (updateTaskDto.description) {
-      task.description = updateTaskDto.description;
-    }
-    if (updateTaskDto.isDone !== undefined) {
-      task.isDone = updateTaskDto.isDone;
-    }
-    return task;
+  async updateTask(id: number, updateData: Partial<Task>): Promise<Task> {
+    await this.tasksRepository.update(id, updateData);
+    return this.getTaskById(id);
   }
 
-  deleteTask(id: string): void {
-    this.tasks = this.tasks.filter(task => task.id !== id);
+  async deleteTask(id: number): Promise<void> {
+    await this.tasksRepository.delete(id);
   }
 }
